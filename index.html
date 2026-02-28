@@ -38,7 +38,7 @@
         #welcomeMsg { animation: fadeOut 4s forwards; }
 
         .card { background: white; border-radius: 20px; border: 1px solid #f1f5f9; position: relative; overflow: hidden; transition: 0.2s; }
-        .card:active { transform: scale(0.96); }
+        .card:active { transform: scale(0.98); }
 
         .badge { position: absolute; top: 10px; right: -30px; padding: 4px 35px; transform: rotate(45deg); font-size: 8px; font-weight: 900; color: white; z-index: 5; }
         .badge-hot { background: linear-gradient(to right, #ef4444, #b91c1c); }
@@ -46,6 +46,8 @@
 
         .admin-controls { display: none; position: absolute; top: 8px; left: 8px; z-index: 20; gap: 4px; }
         .is-admin .admin-controls { display: flex; }
+        .is-admin .admin-only { display: inline-block; }
+        .admin-only { display: none; }
         
         .category-header { background: #0f172a; color: white; padding: 8px 18px; border-radius: 12px; font-size: 13px; font-weight: 900; margin: 25px 0 12px 0; display: inline-block; }
         
@@ -113,11 +115,7 @@
 
         <div class="px-2 mt-4"><div class="relative"><input type="text" id="searchInput" oninput="filterProducts()" placeholder="ابحث عن مادة أو كود..." class="w-full p-4 pr-12 rounded-2xl bg-white border border-slate-200 shadow-sm outline-none text-sm font-bold focus:border-maroon transition-all"><span class="absolute right-4 top-4 opacity-30">🔍</span></div></div>
         
-        <div id="adsContainer" class="ads-slider mt-2">
-            <div id="staticBanner" class="ad-card shadow-lg animate-item">
-                <img src="https://i.ibb.co/68v8zYQ/hoco-banner.png">
-            </div>
-        </div>
+        <div id="adsContainer" class="ads-slider mt-2"></div>
         
         <div id="itemsGrid" class="p-2 pb-10"></div>
 
@@ -190,6 +188,13 @@
             }
         };
 
+        window.updatePrice = async (id, oldPrice) => {
+            const newPrice = prompt("أدخل السعر الجديد:", oldPrice);
+            if(newPrice && !isNaN(newPrice)) {
+                await updateDoc(doc(window.dbDirect, "products", id), { price: Number(newPrice) });
+            }
+        };
+
         window.uploadAd = async () => {
             if(!base64Img) return;
             await addDoc(window.dbAds, { img: base64Img, time: Date.now() });
@@ -201,15 +206,11 @@
 
         function loadData() {
             onSnapshot(query(window.dbAds, orderBy("time", "desc")), (snap) => {
-                const cont = document.getElementById('adsContainer'); 
-                // نحذف فقط الإعلانات المرفوعة سابقاً ولا نلمس البنر الثابت
-                const oldDynamic = cont.querySelectorAll('.dynamic-ad');
-                oldDynamic.forEach(el => el.remove());
-                
+                const cont = document.getElementById('adsContainer'); cont.innerHTML = '';
                 snap.forEach(d => {
                     const ad = d.data();
                     const adEl = document.createElement('div');
-                    adEl.className = 'ad-card shadow-lg animate-item dynamic-ad';
+                    adEl.className = 'ad-card shadow-lg animate-item';
                     adEl.innerHTML = `
                         ${document.body.classList.contains('is-admin') ? `<button onclick="removeAd('${d.id}')" class="absolute top-2 left-2 bg-red-600 text-white p-1 rounded-full text-[8px] z-10">✕ حذف</button>` : ''}
                         <img src="${ad.img}">
@@ -245,7 +246,10 @@
                         <div class="admin-controls"><button onclick="removeItem('${item.id}')" class="bg-red-500 text-white w-7 h-7 rounded-lg text-[10px]">✕</button></div>
                         <img src="${item.img || 'https://placehold.co/200'}" class="w-full h-28 object-contain mb-2 rounded-xl bg-slate-50">
                         <h2 class="text-[10px] font-bold h-8 overflow-hidden leading-tight text-slate-700">${item.name}</h2>
-                        <p class="text-maroon font-black text-xs my-2">${item.price.toLocaleString()} د.ع</p>
+                        <p class="text-maroon font-black text-xs my-2 flex items-center gap-1">
+                           <span>${item.price.toLocaleString()} د.ع</span>
+                           <button onclick="updatePrice('${item.id}', ${item.price})" class="admin-only text-slate-400 text-[10px]">📝</button>
+                        </p>
                         <div class="flex items-center justify-between bg-slate-50 p-1 rounded-xl mb-2 border border-slate-100">
                             <button onclick="changeQty('${item.id}', -1)" class="w-8 h-8 font-bold text-slate-400">-</button>
                             <span id="qty-${item.id}" class="text-xs font-black">1</span>
