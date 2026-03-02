@@ -35,24 +35,26 @@
         .animate-item { animation: fadeInUp 0.4s ease forwards; }
 
         @keyframes fadeOut { 0% { opacity: 1; visibility: visible; } 80% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
-        #welcomeMsg { animation: fadeOut 4s forwards; }
+        .welcome-overlay { position: fixed; inset: 0; z-index: 200; display: none; align-items: center; justify-content: center; padding: 24px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); text-align: center; }
+        .show-welcome { display: flex; animation: fadeOut 4s forwards; }
 
         .card { background: white; border-radius: 20px; border: 1px solid #f1f5f9; position: relative; overflow: hidden; }
-        .admin-only { display: none; }
+        .admin-only { display: none !important; }
         .is-admin .admin-only { display: flex !important; }
         
-        /* تعديل لون الصنف إلى الرصاصي */
         .category-header { background: #e2e8f0; color: #475569; padding: 8px 18px; border-radius: 12px; font-size: 13px; font-weight: 900; margin: 25px 0 12px 0; display: inline-block; border: 1px solid #cbd5e1; }
         
-        .ads-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; padding: 10px 5px; scrollbar-width: none; min-height: 100px; }
+        .ads-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; padding: 10px 5px; scrollbar-width: none; min-height: 160px; }
         .ads-slider::-webkit-scrollbar { display: none; }
         .ad-card { flex: 0 0 100%; scroll-snap-align: center; border-radius: 25px; height: 160px; overflow: hidden; position: relative; box-shadow: 0 10px 20px -10px rgba(0,0,0,0.2); background: #eee; }
         .ad-card img { width: 100%; height: 100%; object-fit: cover; }
+        .hot-badge { position: absolute; top: 10px; left: 10px; background: #f97316; color: white; padding: 2px 8px; border-radius: 8px; font-size: 8px; font-weight: 900; z-index: 5; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body class="pb-40">
 
-    <div id="welcomeMsg" class="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-[#0f172a]/90 backdrop-blur-lg text-center hidden">
+    <div id="welcomeMsg" class="welcome-overlay">
         <div class="animate-item">
             <div class="text-6xl mb-4">🇮🇶</div>
             <h2 class="text-white text-2xl font-black mb-2">أهلاً بك في hoco. Iraq</h2>
@@ -70,7 +72,7 @@
 
     <div id="mainContent" class="hidden">
         <header class="bg-[#0f172a] sticky top-0 z-50 p-4 flex justify-between items-center shadow-lg">
-            <div class="w-20"><button id="adminBtn" onclick="document.getElementById('adminUI').classList.toggle('hidden')" class="hidden bg-white/10 text-white p-2 rounded-xl text-[8px] font-bold border border-white/10">إدارة +</button></div>
+            <div class="w-20"><button id="adminBtn" onclick="document.getElementById('adminUI').classList.toggle('hidden')" class="admin-only bg-white/10 text-white p-2 rounded-xl text-[8px] font-bold border border-white/10">إدارة +</button></div>
             <h1 class="text-2xl font-black text-white italic tracking-tighter">hoco. Elite</h1>
             <div class="w-20 text-left"><button onclick="location.reload()" class="bg-rose-600 text-white px-3 py-2 rounded-xl text-[10px] font-bold">خروج</button></div>
         </header>
@@ -78,9 +80,9 @@
         <div class="p-4">
             <div id="adsContainer" class="ads-slider mb-2"></div>
 
-            <div id="adminUI" class="hidden mb-6 p-6 bg-white rounded-[30px] shadow-2xl border-2 border-blue-50">
+            <div id="adminUI" class="hidden mb-6 p-6 bg-white rounded-[30px] shadow-2xl border-2 border-blue-50 animate-item">
                 <div class="flex border-b mb-4 text-center">
-                    <button onclick="switchTab('prod')" class="flex-1 pb-2 font-bold text-xs text-blue-600">إضافة منتج</button>
+                    <button onclick="switchTab('prod')" class="flex-1 pb-2 font-bold text-xs text-blue-600 border-b-2 border-blue-600">إضافة منتج</button>
                     <button onclick="switchTab('ads')" class="flex-1 pb-2 font-bold text-xs text-slate-400">إضافة إعلان</button>
                 </div>
                 
@@ -90,6 +92,10 @@
                     <div class="grid grid-cols-2 gap-2">
                         <input type="text" id="addId" placeholder="الكود" class="p-4 rounded-2xl bg-slate-50 border outline-none text-sm font-bold">
                         <input type="number" id="addPrice" placeholder="السعر" class="p-4 rounded-2xl bg-slate-50 border outline-none text-sm font-bold">
+                    </div>
+                    <div class="flex items-center gap-2 p-2 bg-orange-50 rounded-xl">
+                        <input type="checkbox" id="isHot" class="w-5 h-5">
+                        <label for="isHot" class="text-xs font-bold text-orange-600">تمييز كـ (عرض خاص 🔥)</label>
                     </div>
                     <button onclick="document.getElementById('fileImg').click()" class="w-full p-4 rounded-2xl bg-blue-50 border-2 border-dashed border-blue-200 text-blue-600 font-bold text-[10px]">📸 اختر صورة المنتج</button>
                     <input type="file" id="fileImg" accept="image/*" class="hidden" onchange="previewImage(this, 'imgPreview')">
@@ -109,25 +115,25 @@
         </div>
 
         <footer class="mt-10 py-10 border-t border-slate-100 text-center">
-            <p class="text-[10px] font-bold text-slate-300 tracking-widest uppercase italic">صمم بواسطة فريق مبيعات Hoco 🇮🇶</p>
+            <p class="text-[10px] font-bold text-slate-300 tracking-widest italic">صمم بواسطة فريق مبيعات Hoco 🇮🇶</p>
         </footer>
     </div>
 
     <div id="cartBar" style="display: none;" class="fixed bottom-6 left-4 right-4 bg-[#0f172a] text-white p-5 rounded-[25px] shadow-2xl z-50 flex justify-between items-center max-w-lg mx-auto">
         <div class="flex flex-col"><span id="cartCount" class="font-black text-sm text-yellow-400">0 مواد</span><span id="totalPriceDisplay" class="text-[10px] text-white/70">0 د.ع</span></div>
-        <button onclick="showCart()" class="bg-maroon text-white px-8 py-3.5 rounded-2xl text-xs font-black">عرض الطلبية</button>
+        <button onclick="showCart()" class="bg-maroon text-white px-8 py-3.5 rounded-2xl text-xs font-black">عرض الفاتورة</button>
     </div>
 
     <div id="cartModal" class="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-[40px] w-full max-w-md p-8 shadow-2xl flex flex-col max-h-[90vh]">
             <h2 class="text-xl font-black text-center mb-6 italic">تفاصيل الطلبية</h2>
-            <div id="cartList" class="flex-1 overflow-y-auto space-y-3 mb-6"></div>
-            <input type="text" id="customerLocation" placeholder="اكتب اسم المحل أو العنوان..." class="w-full p-4 rounded-2xl bg-yellow-50 border-2 border-yellow-100 mb-4 text-center text-sm font-bold outline-none">
+            <div id="cartList" class="flex-1 overflow-y-auto space-y-3 mb-6 pr-2"></div>
+            <input type="text" id="customerLocation" placeholder="اسم المحل أو العنوان..." class="w-full p-4 rounded-2xl bg-yellow-50 border-2 border-yellow-100 mb-4 text-center text-sm font-bold outline-none">
             <div class="grid grid-cols-2 gap-2">
-                <button onclick="sendWhatsApp('9647870037165')" class="bg-[#25D366] text-white p-4 rounded-2xl text-[10px] font-black">ودوود</button>
-                <button onclick="sendWhatsApp('9647737774427')" class="bg-[#25D366] text-white p-4 rounded-2xl text-[10px] font-black">سمر</button>
-                <button onclick="sendWhatsApp('9647722897766')" class="bg-[#25D366] text-white p-4 rounded-2xl text-[10px] font-black">غادة</button>
-                <button onclick="sendWhatsApp('9647870037167')" class="bg-[#25D366] text-white p-4 rounded-2xl text-[10px] font-black">مينا</button>
+                <button onclick="sendWhatsApp('9647870037165')" class="bg-[#25D366] text-white p-4 rounded-2xl text-[10px] font-black shadow-md">ودوود</button>
+                <button onclick="sendWhatsApp('9647737774427')" class="bg-[#25D366] text-white p-4 rounded-2xl text-[10px] font-black shadow-md">سمر</button>
+                <button onclick="sendWhatsApp('9647722897766')" class="bg-[#25D366] text-white p-4 rounded-2xl text-[10px] font-black shadow-md">غادة</button>
+                <button onclick="sendWhatsApp('9647870037167')" class="bg-[#25D366] text-white p-4 rounded-2xl text-[10px] font-black shadow-md">مينا</button>
             </div>
             <button onclick="document.getElementById('cartModal').classList.add('hidden')" class="mt-4 text-slate-400 text-[10px] font-bold">إغلاق</button>
         </div>
@@ -152,14 +158,19 @@
 
         window.checkLogin = () => {
             const pass = document.getElementById('passInput').value;
-            if(pass === "1234") { document.getElementById('adminBtn').classList.remove('hidden'); document.body.classList.add('is-admin'); startApp(); }
-            else if(pass === "5555") { startApp(); } else { alert("الرمز خطأ"); }
+            if(pass === "1234") { 
+                document.body.classList.add('is-admin'); 
+                startApp(); 
+            } else if(pass === "5555") { 
+                startApp(); 
+            } else { alert("الرمز خطأ"); }
         };
 
         function startApp() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
-            document.getElementById('welcomeMsg').classList.remove('hidden');
+            // تفعيل الرسالة الترحيبية فور الدخول
+            document.getElementById('welcomeMsg').classList.add('show-welcome');
             loadAds();
             loadProducts();
         }
@@ -167,11 +178,12 @@
         function loadAds() {
             onSnapshot(query(window.dbAds, orderBy("time", "desc")), (snap) => {
                 const cont = document.getElementById('adsContainer'); 
-                if (snap.empty) { cont.innerHTML = '<div class="text-center w-full text-slate-300 text-xs py-10">لا توجد إعلانات حالياً</div>'; return; }
                 cont.innerHTML = '';
                 snap.forEach(d => {
                     cont.innerHTML += `<div class="ad-card animate-item">
-                        ${document.body.classList.contains('is-admin') ? `<button onclick="deleteAd('${d.id}')" class="absolute top-2 left-2 bg-red-600 text-white p-1 px-2 rounded-full text-[8px] z-10">✕ حذف</button>` : ''}
+                        <div class="admin-only absolute top-2 left-2 flex z-10">
+                            <button onclick="deleteAd('${d.id}')" class="bg-red-600 text-white p-1 px-2 rounded-full text-[8px]">✕ حذف</button>
+                        </div>
                         <img src="${d.data().img}">
                     </div>`;
                 });
@@ -189,9 +201,11 @@
         window.uploadProduct = async () => {
             const n = document.getElementById('addName').value; const p = document.getElementById('addPrice').value;
             const id = document.getElementById('addId').value; const c = document.getElementById('addCat').value || "عام";
+            const hot = document.getElementById('isHot').checked;
             if(n && p) { 
-                await addDoc(window.dbCol, { name: n, price: Number(p), code: id, cat: c, img: base64Img, time: Date.now() }); 
+                await addDoc(window.dbCol, { name: n, price: Number(p), code: id, cat: c, img: base64Img, hot: hot, time: Date.now() }); 
                 alert("تم الحفظ"); base64Img = ""; document.getElementById('imgPreview').classList.add('hidden');
+                document.getElementById('isHot').checked = false;
             }
         };
 
@@ -205,9 +219,10 @@
                     let html = `<div class="category-header animate-item">${cat}</div><div class="grid grid-cols-2 gap-4">`;
                     groups[cat].forEach(item => {
                         html += `<div class="card p-4 flex flex-col shadow-sm animate-item">
+                            ${item.hot ? '<div class="hot-badge">🔥 HOT SALE</div>' : ''}
                             <div class="admin-only absolute top-2 right-2 flex gap-1 z-10">
-                                <button onclick="editName('${item.id}', '${item.name}')" class="bg-blue-500 text-white w-7 h-7 rounded-lg text-[10px]">📝</button>
-                                <button onclick="deleteItem('${item.id}')" class="bg-red-500 text-white w-7 h-7 rounded-lg text-[10px]">✕</button>
+                                <button onclick="editName('${item.id}', '${item.name}')" class="bg-blue-500 text-white w-6 h-6 rounded-lg text-[8px]">📝</button>
+                                <button onclick="deleteItem('${item.id}')" class="bg-red-500 text-white w-6 h-6 rounded-lg text-[8px]">✕</button>
                             </div>
                             <img src="${item.img || 'https://placehold.co/200'}" class="w-full h-24 object-contain mb-3 rounded-xl">
                             <h2 class="text-[10px] font-black h-8 overflow-hidden text-slate-700">${item.name}</h2>
@@ -250,7 +265,7 @@
 
         window.sendWhatsApp = (phone) => {
             const loc = document.getElementById('customerLocation').value; if(!loc) return alert("اكتب اسم المحل");
-            let total = 0, msg = `🧾 *فاتورة طلبية hoco. Elite*\n📍 *المحل:* ${loc}\n--------------------------\n`;
+            let total = 0, msg = `🧾 *فاتورة hoco. Elite*\n📍 *المحل:* ${loc}\n--------------------------\n`;
             cart.forEach((i, idx) => { let sub = i.price * i.qty; total += sub; msg += `*${idx+1}.* ${i.name}\n🔢 العدد: ${i.qty} | السعر: ${sub.toLocaleString()} د.ع\n🏷️ الكود: ${i.code}\n--------------------------\n`; });
             msg += `💰 *المجموع الكلي: ${total.toLocaleString()} د.ع*`;
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`);
