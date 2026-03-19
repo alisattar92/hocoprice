@@ -1,0 +1,225 @@
+
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wamda Catalog | لوحة العرض الذكية</title>
+    <style>
+        :root {
+            --accent: #00d2ff;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --admin-theme: #f43f5e;
+        }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
+        header { text-align: center; padding: 30px; border-bottom: 2px solid var(--accent); margin-bottom: 20px; border-radius: 15px; background: #1e293b; }
+        
+        /* نظام المجموعات */
+        .groups-label { text-align: center; color: var(--accent); margin-bottom: 10px; font-weight: bold; }
+        .groups-container { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 30px; }
+        .group-card { background: var(--card-bg); padding: 12px 25px; border-radius: 30px; cursor: pointer; border: 2px solid #334155; transition: 0.3s; }
+        .group-card.active { border-color: var(--accent); background: var(--accent); color: #000; font-weight: bold; }
+
+        /* شريط البحث والأقسام */
+        #contentSection { display: none; animation: fadeIn 0.5s; }
+        .search-box { max-width: 500px; margin: 0 auto 20px; }
+        input#searchInput { width: 100%; padding: 12px; border-radius: 25px; border: 1px solid #334155; background: #0f172a; color: white; text-align: center; outline: none; }
+        
+        .tabs { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
+        .tab-btn { background: #334155; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+        .tab-btn.active { background: #facc15; color: black; font-weight: bold; }
+
+        /* شبكة العرض */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+        .card { background: var(--card-bg); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid #334155; position: relative; transition: 0.2s; }
+        .card:hover { transform: scale(1.03); border-color: var(--accent); }
+        .card .brand-tag { font-size: 0.7rem; color: var(--accent); display: block; margin-bottom: 5px; text-transform: uppercase; }
+
+        /* لوحة الإدارة (مخفية افتراضياً) */
+        .admin-panel { display: none; background: #111827; border: 2px solid var(--admin-theme); padding: 20px; border-radius: 15px; margin-bottom: 30px; }
+        .admin-panel h3 { color: var(--admin-theme); margin-top: 0; }
+        .form-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; background: #1f2937; padding: 15px; border-radius: 10px; }
+        input, select { padding: 10px; border-radius: 5px; border: 1px solid #374151; background: #111827; color: white; }
+        button.admin-btn { background: var(--admin-theme); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        
+        .delete-btn { position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 10px; display: none; }
+        body.admin-mode .delete-btn { display: block; }
+        
+        .login-trigger { position: fixed; bottom: 15px; left: 15px; width: 35px; height: 35px; background: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0.3; font-size: 14px; z-index: 1000; }
+        .login-trigger:hover { opacity: 1; background: var(--admin-theme); }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<header>
+    <h2>WAMDA AL-IRAQ</h2>
+    <p>دليل موديلات لاصق الشاشة</p>
+</header>
+
+<div class="groups-label">اختر المجموعة الرئيسية</div>
+<div class="groups-container" id="groupsList">
+    </div>
+
+<div class="admin-panel" id="adminPanel">
+    <h3>⚙️ لوحة تحكم المدير</h3>
+    <div class="form-group">
+        <strong>1. إضافة مجموعة جديدة:</strong>
+        <input type="text" id="newGroupName" placeholder="مثلاً: FULL GLUE">
+        <button class="admin-btn" onclick="addGroup()">إضافة مجموعة</button>
+    </div>
+    <div class="form-group">
+        <strong>2. إضافة موديل وقسم:</strong>
+        <select id="targetGroup"></select>
+        <input type="text" id="brandName" placeholder="القسم (مثلاً: iPhone)">
+        <input type="text" id="modelName" placeholder="الموديل (مثلاً: 15 Pro)">
+        <button class="admin-btn" style="background:var(--accent); color:black;" onclick="addItem()">إضافة المادة</button>
+    </div>
+    <button onclick="logout()" style="background:#4b5563; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">خروج من وضع الإدارة</button>
+</div>
+
+<div id="contentSection">
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="ابحث عن موديل معين..." onkeyup="renderItems()">
+    </div>
+    <div class="tabs" id="brandsTabs"></div>
+    <div class="grid" id="itemsGrid"></div>
+</div>
+
+<div class="login-trigger" onclick="login()">🔒</div>
+
+<script>
+    // قاعدة البيانات
+    let data = JSON.parse(localStorage.getItem('wamdaStore')) || {
+        groups: [],
+        items: []
+    };
+
+    let currentGroupId = null;
+    let currentBrand = 'ALL';
+    let isAdmin = false;
+
+    // --- وظائف الإدارة ---
+    function login() {
+        let pass = prompt("الرجاء إدخال كلمة مرور المدير:");
+        if (pass === "1234") {
+            isAdmin = true;
+            document.getElementById('adminPanel').style.display = 'block';
+            document.body.classList.add('admin-mode');
+            updateAdminSelect();
+            renderItems();
+        } else {
+            alert("كلمة المرور غير صحيحة!");
+        }
+    }
+
+    function logout() {
+        isAdmin = false;
+        document.getElementById('adminPanel').style.display = 'none';
+        document.body.classList.remove('admin-mode');
+        renderItems();
+    }
+
+    function addGroup() {
+        let name = document.getElementById('newGroupName').value.trim();
+        if (!name) return;
+        data.groups.push({ id: Date.now(), name: name.toUpperCase() });
+        save();
+        renderGroups();
+        updateAdminSelect();
+        document.getElementById('newGroupName').value = '';
+    }
+
+    function addItem() {
+        let groupId = document.getElementById('targetGroup').value;
+        let brand = document.getElementById('brandName').value.trim().toUpperCase();
+        let model = document.getElementById('modelName').value.trim().toUpperCase();
+        
+        if (!groupId || !brand || !model) return alert("اكمل البيانات!");
+        
+        data.items.push({
+            id: Date.now(),
+            groupId: parseInt(groupId),
+            brand: brand,
+            model: model
+        });
+        save();
+        renderItems();
+        document.getElementById('modelName').value = '';
+    }
+
+    function deleteItem(id) {
+        if(!confirm("هل أنت متأكد من الحذف؟")) return;
+        data.items = data.items.filter(i => i.id !== id);
+        save();
+        renderItems();
+    }
+
+    function save() {
+        localStorage.setItem('wamdaStore', JSON.stringify(data));
+    }
+
+    function updateAdminSelect() {
+        const select = document.getElementById('targetGroup');
+        select.innerHTML = data.groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+    }
+
+    // --- وظائف العرض ---
+    function renderGroups() {
+        const container = document.getElementById('groupsList');
+        if (data.groups.length === 0) {
+            container.innerHTML = "<p>لا توجد مجموعات حالياً. ادخل كأدمن للإضافة.</p>";
+            return;
+        }
+        container.innerHTML = data.groups.map(g => `
+            <div class="group-card ${currentGroupId === g.id ? 'active' : ''}" onclick="selectGroup(${g.id})">
+                ${g.name}
+            </div>
+        `).join('');
+    }
+
+    function selectGroup(id) {
+        currentGroupId = id;
+        currentBrand = 'ALL';
+        document.getElementById('contentSection').style.display = 'block';
+        renderGroups();
+        renderItems();
+    }
+
+    function renderItems() {
+        if (!currentGroupId) return;
+
+        const groupItems = data.items.filter(i => i.groupId === currentGroupId);
+        
+        // تحديث الأقسام (Tabs)
+        const brands = ['ALL', ...new Set(groupItems.map(i => i.brand))];
+        document.getElementById('brandsTabs').innerHTML = brands.map(b => `
+            <button class="tab-btn ${currentBrand === b ? 'active' : ''}" onclick="currentBrand='${b}'; renderItems();">${b}</button>
+        `).join('');
+
+        // فلترة البحث والماركة
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = groupItems.filter(i => {
+            const mBrand = (currentBrand === 'ALL' || i.brand === currentBrand);
+            const mSearch = i.model.toLowerCase().includes(search);
+            return mBrand && mSearch;
+        });
+
+        const grid = document.getElementById('itemsGrid');
+        grid.innerHTML = filtered.map(i => `
+            <div class="card">
+                ${isAdmin ? `<button class="delete-btn" onclick="deleteItem(${i.id})">×</button>` : ''}
+                <span class="brand-tag">${i.brand}</span>
+                <strong>${i.model}</strong>
+            </div>
+        `).join('');
+    }
+
+    // تشغيل أولي
+    renderGroups();
+</script>
+
+</body>
+</html>
