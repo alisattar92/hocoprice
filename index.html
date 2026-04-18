@@ -37,9 +37,17 @@
         #progressBar { width: 0%; height: 100%; background: var(--gold); }
         .btn-gold-solid { background: var(--gold); color: #0f172a; font-weight: 900; }
         .btn-navy-solid { background: var(--navy); color: white; font-weight: 900; }
+        
+        /* Modal Style for Image Zoom */
+        #imgModal { display: none; position: fixed; z-index: 300; inset: 0; background: rgba(0,0,0,0.9); align-items: center; justify-content: center; padding: 20px; }
+        #imgModal img { max-width: 100%; max-height: 90vh; border-radius: 15px; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body class="pb-24">
+
+    <div id="imgModal" onclick="this.style.display='none'">
+        <img id="fullImg" src="" alt="Zoomed Image">
+    </div>
 
     <div id="loginScreen" class="fixed inset-0 z-[200] glass-dark flex flex-col items-center justify-center p-8 text-center">
         <div class="mb-10"><h1 class="text-6xl font-black text-[#d4af37] italic tracking-tighter text-shadow-xl">hoco.</h1></div>
@@ -64,9 +72,16 @@
             <p id="statusMsg" class="text-[10px] mt-2 text-white/50 text-center"></p>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-3xl border">
-            <select id="bulkCatSelect" class="input-elegant text-xs font-bold col-span-1"></select>
-            <button onclick="executeBulkMove()" class="bg-blue-600 text-white rounded-xl font-bold text-xs col-span-1">نقل المحدد لهذه المجموعة</button>
+        <div class="p-4 bg-slate-50 rounded-3xl border space-y-3">
+            <div class="flex justify-between items-center">
+                <button onclick="toggleAllCheckboxes(true)" class="text-[10px] font-bold text-blue-600 underline">تحديد كل المعروض</button>
+                <button onclick="toggleAllCheckboxes(false)" class="text-[10px] font-bold text-red-500 underline">إلغاء التحديد</button>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <select id="bulkCatSelect" class="input-elegant text-xs font-bold col-span-1"></select>
+                <button onclick="executeBulkMove()" class="bg-blue-600 text-white rounded-xl font-bold text-xs col-span-1">نقل المحدد لهذه المجموعة</button>
+            </div>
+            <button onclick="executeBulkDelete()" class="w-full bg-red-600 text-white py-3 rounded-xl font-bold text-xs">حذف كافة المنتجات المحددة 🗑️</button>
         </div>
 
         <div class="p-4 bg-slate-50 rounded-3xl border">
@@ -109,8 +124,7 @@
                 <button onclick="sendOrder('9647870037165', 'ودود')" class="bg-green-600 text-white p-4 rounded-xl font-bold text-[10px]">ودود</button>
                 <button onclick="sendOrder('9647737774427', 'سمر')" class="bg-green-600 text-white p-4 rounded-xl font-bold text-[10px]">سمر</button>
                 <button onclick="sendOrder('9647722897766', 'غادة')" class="bg-green-600 text-white p-4 rounded-xl font-bold text-[10px]">غادة</button>
-                <button onclick="sendOrder('9647870037167', 'اية')" class="bg-green-600 text-white p-4 rounded-xl font-bold text-[10px]">اية</button>
-                <button onclick="sendOrder('9647704793024', 'الحسابات')" class="bg-green-600 text-white p-4 rounded-xl font-bold text-[10px]">الحسابات</button>
+                <button onclick="sendOrder('9647870037167', 'مينا')" class="bg-green-600 text-white p-4 rounded-xl font-bold text-[10px]">مينا</button>
             </div>
             <button onclick="document.getElementById('cartModal').classList.add('hidden')" class="w-full mt-6 text-slate-400 font-bold text-[10px]">إلغاء وإغلاق</button>
         </div>
@@ -125,8 +139,8 @@
 
         window.checkLogin = () => {
             const p = document.getElementById('passInput').value;
-            if(p === "1024") { document.body.classList.add('is-admin'); finalizeLogin(); }
-            else if(p === "1234") { finalizeLogin(); }
+            if(p === "1234") { document.body.classList.add('is-admin'); finalizeLogin(); }
+            else if(p === "5555") { finalizeLogin(); }
             else alert("الرمز خاطئ");
         };
 
@@ -141,32 +155,39 @@
             });
         }
 
-        function renderTabs() {
-            const cats = ["الكل", ...new Set(products.map(p => p.cat))];
-            document.getElementById('tabs').innerHTML = cats.map(c => `
-                <button onclick="filterCat('${c}')" class="px-6 py-2 bg-white rounded-full shadow-sm text-[10px] font-bold whitespace-nowrap border-2 border-transparent hover:border-gold">${c}</button>
-            `).join('');
-        }
-
-        function updateBulkSelect() {
-            const cats = [...new Set(products.map(p => p.cat))];
-            document.getElementById('bulkCatSelect').innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
-        }
+        // تكبير الصورة للزبون
+        window.zoomImg = (src) => {
+            if(document.body.classList.contains('is-admin')) return; // لا يعمل عند الأدمن للسماح بتعديل الصورة
+            document.getElementById('fullImg').src = src;
+            document.getElementById('imgModal').style.display = 'flex';
+        };
 
         window.renderGrid = (data) => {
             const g = document.getElementById('grid');
             g.innerHTML = data.map(p => `
                 <div class="bg-white p-4 rounded-[2rem] shadow-sm border border-transparent flex flex-col relative">
-                    <div class="admin-only absolute top-3 left-3 z-10"><input type="checkbox" onchange="toggleSelect('${p.id}')" class="w-5 h-5"></div>
+                    <div class="admin-only absolute top-3 left-3 z-10">
+                        <input type="checkbox" onchange="toggleSelect('${p.id}')" ${selected.has(p.id) ? 'checked' : ''} class="bulk-check w-5 h-5 rounded border-gray-300">
+                    </div>
+                    
                     <div class="admin-only absolute top-3 right-3 z-10 flex flex-col gap-1">
                         <button onclick="quickEdit('${p.id}', 'name')" class="bg-white p-1 rounded border text-[7px] font-bold shadow-sm">اسم ✏️</button>
                         <button onclick="quickEdit('${p.id}', 'price')" class="bg-white p-1 rounded border text-[7px] font-bold shadow-sm">سعر 💰</button>
                         <button onclick="quickEdit('${p.id}', 'img')" class="bg-white p-1 rounded border text-[7px] font-bold shadow-sm">صورة 📷</button>
                         <button onclick="deleteItem('${p.id}')" class="bg-red-50 p-1 rounded border text-red-500 text-[7px] font-bold shadow-sm">حذف</button>
                     </div>
-                    <div class="h-28 mb-3 flex items-center justify-center cursor-pointer" onclick="quickEdit('${p.id}', 'img')"><img src="${p.img || 'https://placehold.co/200?text=hoco'}" class="max-h-full object-contain"></div>
+
+                    <div class="h-28 mb-3 flex items-center justify-center cursor-pointer" onclick="zoomImg('${p.img || 'https://placehold.co/200?text=hoco'}')">
+                        <img src="${p.img || 'https://placehold.co/200?text=hoco'}" class="max-h-full object-contain">
+                    </div>
+
                     <h3 class="text-[9px] font-black h-8 line-clamp-2 mb-1">${p.name}</h3>
-                    <p class="text-gold font-black text-[11px] mb-3">${p.price.toLocaleString()} IQD</p>
+                    
+                    <div class="flex justify-between items-center mb-3">
+                        <p class="text-gold font-black text-[11px]">${p.price.toLocaleString()} IQD</p>
+                        <p class="text-slate-400 font-bold text-[8px]">المتوفر: ${p.stock || 0}</p>
+                    </div>
+
                     <div class="mt-auto flex flex-col gap-2">
                         <input type="number" id="qty-${p.id}" value="1" min="1" class="w-full p-2 bg-slate-50 rounded-xl text-center text-xs font-black outline-none border">
                         <button onclick="addToCart('${p.id}')" class="btn-gold-solid py-3 rounded-xl text-[10px]">إضافة للسلة</button>
@@ -175,6 +196,41 @@
             `).join('');
         };
 
+        // وظيفة تحديد / إلغاء تحديد الكل
+        window.toggleAllCheckboxes = (status) => {
+            const checks = document.querySelectorAll('.bulk-check');
+            checks.forEach(c => {
+                c.checked = status;
+                const id = c.getAttribute('onchange').match(/'([^']+)'/)[1];
+                status ? selected.add(id) : selected.delete(id);
+            });
+        };
+
+        window.toggleSelect = (id) => selected.has(id) ? selected.delete(id) : selected.add(id);
+
+        // حذف المنتجات المحددة دفعة واحدة
+        window.executeBulkDelete = async () => {
+            if(selected.size === 0) return alert("يرجى تحديد منتجات أولاً");
+            if(confirm(`هل أنت متأكد من حذف ${selected.size} منتج نهائياً؟`)) {
+                const batch = window.writeBatch(window.dbDirect);
+                selected.forEach(id => batch.delete(doc(window.dbDirect, "products", id)));
+                await batch.commit();
+                selected.clear();
+                alert("تم الحذف بنجاح ✅");
+            }
+        };
+
+        window.executeBulkMove = async () => {
+            const target = document.getElementById('bulkCatSelect').value;
+            if(selected.size === 0) return alert("حدد منتجات أولاً");
+            const batch = window.writeBatch(window.dbDirect);
+            selected.forEach(id => batch.update(doc(window.dbDirect, "products", id), { cat: target }));
+            await batch.commit(); 
+            selected.clear();
+            alert("تم النقل بنجاح ✅");
+        };
+
+        // بقية الدوال البرمجية القديمة بدون أي تغيير
         window.syncExcel = async (input) => {
             const file = input.files[0];
             const reader = new FileReader();
@@ -233,14 +289,6 @@
             location.reload();
         };
 
-        window.toggleSelect = (id) => selected.has(id) ? selected.delete(id) : selected.add(id);
-        window.executeBulkMove = async () => {
-            const target = document.getElementById('bulkCatSelect').value;
-            if(selected.size === 0) return alert("حدد منتجات أولاً");
-            const batch = window.writeBatch(window.dbDirect);
-            selected.forEach(id => batch.update(doc(window.dbDirect, "products", id), { cat: target }));
-            await batch.commit(); alert("تم النقل بنجاح ✅"); location.reload();
-        };
         window.quickEdit = async (id, f) => {
             const p = products.find(x => x.id === id);
             if(f === 'img') {
@@ -254,6 +302,19 @@
                 if(v) await updateDoc(doc(window.dbDirect, "products", id), { [f]: f === 'price' ? Number(v) : v });
             }
         };
+
+        function renderTabs() {
+            const cats = ["الكل", ...new Set(products.map(p => p.cat))];
+            document.getElementById('tabs').innerHTML = cats.map(c => `
+                <button onclick="filterCat('${c}')" class="px-6 py-2 bg-white rounded-full shadow-sm text-[10px] font-bold whitespace-nowrap border-2 border-transparent hover:border-gold">${c}</button>
+            `).join('');
+        }
+
+        function updateBulkSelect() {
+            const cats = [...new Set(products.map(p => p.cat))];
+            document.getElementById('bulkCatSelect').innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
         window.filterCat = (c) => renderGrid(c === "الكل" ? products : products.filter(p => p.cat === c));
         window.doSearch = () => {
             const v = document.getElementById('search').value.toLowerCase();
